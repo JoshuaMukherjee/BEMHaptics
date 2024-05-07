@@ -78,9 +78,13 @@ print(p_pressure)
 
 centres = get_centres_as_points(hand)
 E_centres = compute_E(hand,centres,BOTTOM_BOARD, H=H)
-F_centres = forward_model(centres,BOTTOM_BOARD)
+
+
+x_f = wgs(p, board=BOTTOM_BOARD, iter=200)
+
+
 pressure_E = torch.abs(E_centres@x)
-pressure_F = torch.abs(F_centres@x)
+pressure_F = torch.abs(E_centres@x_f)
 
 
 A = torch.tensor((-0.12,-0.025, 0.12))
