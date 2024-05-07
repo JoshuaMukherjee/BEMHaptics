@@ -1,0 +1,4 @@
+/Media/*
+/Draft/*
+*.pdf
+.DS_Store
