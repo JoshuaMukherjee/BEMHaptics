@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 
 
 
-hand_origional = load_scatterer('Media/ExportedMesh1.obj',dx=0.072, dy=-2.53,dz=-0.47+0.03)
+# hand_origional = load_scatterer('Media/Hand1.obj',dx=0.072, dy=-2.53,dz=-0.47+0.03) # hand1
+hand_origional = load_scatterer('Media/Hand2.obj',dx=-0.0123, dy=-2.52,dz=-0.41+0.06) # hand2
 # hand_origional = load_scatterer('Media/Sphere-lam2.stl',dy=-0.06,dz=0.04)
+print(hand_origional.center_of_mass())
 
-
-hand = hand_origional.clean()
+hand = hand_origional.clean().smooth()
 print(hand.is_closed())
 
 
@@ -30,8 +31,14 @@ print(hand.celldata['Area'])
 
 com = hand.center_of_mass()
 print(com)
-# p = hand.intersect_with_line([com[0], com[1],com[2]+1],[com[0], com[1],com[2]-1])[1]
-p = hand.intersect_with_line([-0.025, -0.025,1],[-0.025, -0.025,-1])[1]
+# ps = hand.intersect_with_line([-0.025, -0.025,1],[-0.025, -0.025,-1]) #Hand1
+ps = hand.intersect_with_line([-0.01, 0,1],[-0.01, 0,-1]) #hand2
+print(ps)
+p = ps[1] #Hand2
+
+# vedo.show(hand, vedo.Point(p),axes=1)
+# exit()
+
 
 centres = hand.cell_centers
 _, centre = vedo.closest(p, centres)
@@ -42,8 +49,6 @@ print(ID)
 print(centre)
 # exit()
 
-# vedo.show(hand,vedo.Point(p),axes=1)
-# exit()
 
 p = create_points(1,1,x=centre[0],y=centre[1],z=centre[2])
 
@@ -61,16 +66,17 @@ H = get_cache_or_compute_H(hand, board=BOTTOM_BOARD)
 E = compute_E(hand,points=p, board=BOTTOM_BOARD,H=H)
 print('Computed')
 
-print(E.shape)
+# print(E.shape)
 # prop = H[:,ID,:].unsqueeze(1)
 # print(prop.shape)
 x = wgs(p,A=E, board = BOTTOM_BOARD, iter=500)
-print(x.shape)
+# print(x.shape)
 
 print('Plotting...')
 
+
 pressure = torch.abs(H@x)
-# pressure[:,ID] = 1000000
+# pressure[:,ID] = 1000000000000
 print(pressure[:,ID])
 
 p_pressure = torch.abs(E@x)
@@ -84,6 +90,8 @@ x_f = wgs(p, board=BOTTOM_BOARD, iter=200)
 
 
 pressure_E = torch.abs(E_centres@x)
+# pressure_E[:,ID] = -1e9
+# print(pressure_E.shape)
 pressure_F = torch.abs(E_centres@x_f)
 
 
@@ -98,8 +106,8 @@ origin = (0,0,0)
 
 
 fig = plt.figure()
-ax =  Visualise_mesh(hand, pressure_E.flatten(), points=p, show=False, subplot=121, fig=fig, vmax=4000)
-ax2 = Visualise_mesh(hand, pressure_F.flatten(), points=p, show=False, subplot=122, fig=fig, vmax = 4000)
+ax =  Visualise_mesh(hand, pressure_E.flatten(), points=p, show=False, subplot=121, fig=fig)
+ax2 = Visualise_mesh(hand, pressure_F.flatten(), points=p, show=False, subplot=122, fig=fig)
 
 def update_view(event):
     if event.name == 'button_press_event' and event.inaxes == ax:
