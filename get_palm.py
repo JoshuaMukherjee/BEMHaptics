@@ -1,51 +1,19 @@
-import socket
-import random
-import os
-
-from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name, get_centre_of_mass_as_points, get_centres_as_points
-from acoustools.Visualiser import Visualise_mesh
+from acoustools.Mesh import load_scatterer , centre_scatterer, scatterer_file_name
 import acoustools.Constants as c
-import vedo
+from acoustools.Visualiser import Visualise_mesh
+
+
 import numpy as np
 import json
+import vedo
 import torch
 
-#STEP 1: GET HAND FROM UNITY
-
-def get_hand_from_unity(host, port, message):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-    client_socket.sendall(message.encode('utf-8'))
-    client_socket.close()
-
-
-host = '127.0.0.1'  # Localhost
-port = 9999         # Port number should match the Unity server port
-
-input("Press enter when hand in position")
-
-HAND_ID = "BEM_HAND" + str(random.randint(0,1000))
-print(HAND_ID)
-get_hand_from_unity(host, port,HAND_ID)
-
-#STEP 2: LOAD MESH
-
-MAX_WAIT = 100000000
-waits = 0
+HAND_ID = 'participant_999999999'
 METADATA_PATH = './Media/Metadata/'+ HAND_ID + '_metadata.json'
-while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
-    waits -= 1
-
-
-HAND_HIEGHT = 0.06
 HAND_PATH = './Media/Hands/'+ HAND_ID + '.obj'
+
 hand_origional = load_scatterer(HAND_PATH)
-h = hand_origional.clone()
-
 correction = centre_scatterer(hand_origional)
-print(correction)
-
-#STEP 3: PROCESS MESH
 
 hand = hand_origional.clean().smooth()
 print(hand.is_closed())
@@ -64,11 +32,9 @@ hand.compute_cell_size()
 hand.filename = scatterer_file_name(hand)
 
 
-#STEP 4: LOAD METADATA
-
 metadata = json.load(open(METADATA_PATH))
-
-#STEP 5: GET PALM POSITIONS
+palm_position_uncorrected = metadata['Hand']['PalmPosition']
+palm_position= [palm_position_uncorrected[i] + correction[i] for i in [0,1,2]]
 
 thumb_UC = metadata['Fingers']['TYPE_THUMB']['TYPE_METACARPAL']['NextJoint']
 index_UC = metadata['Fingers']['TYPE_INDEX']['TYPE_METACARPAL']['NextJoint']
@@ -82,6 +48,7 @@ little = [little_UC[i] + correction[i] for i in [0,1,2]]
 thumb[2] -= 0.01
 index[2] -= 0.01
 little[2] -= 0.01
+
 
 centres = hand.cell_centers
 
@@ -102,10 +69,4 @@ colours[ID_t] = 1
 colours[ID_i] = 1
 colours[ID_l] = 1
 
-#STEP 6: COMPUTE PATH
-
-#STEP 7: COMPUTE PHASES
-
-#STEP 8: RENDER HAPTICS 
-
-Visualise_mesh(hand,colours ,equalise_axis=True)
+Visualise_mesh(hand, colours, equalise_axis=True)

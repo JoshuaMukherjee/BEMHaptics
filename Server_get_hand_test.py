@@ -11,12 +11,12 @@ host = '127.0.0.1'  # Localhost
 port = 9999         # Port number should match the Unity server port
 
 
-participants = 1
+participants = 999999999
 
-for i in range(participants):
-    input('Generating hand')
-    get_hand_from_unity(host, port, "participant_"+str(i))
+input('Generating hand')
+get_hand_from_unity(host, port, "participant_"+str(participants))
      
+
 
 
 
