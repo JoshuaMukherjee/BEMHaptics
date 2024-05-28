@@ -3,109 +3,201 @@ import random
 import os
 
 from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name, get_centre_of_mass_as_points, get_centres_as_points
+from acoustools.Paths import get_numeral, interpolate_path
+from acoustools.Solvers import wgs
+from acoustools.BEM import compute_E, get_cache_or_compute_H
 from acoustools.Visualiser import Visualise_mesh
 import acoustools.Constants as c
+from acoustools.Utilities import device, DTYPE, BOTTOM_BOARD, create_points, propagate_abs
 import vedo
 import numpy as np
 import json
 import torch
 
-#STEP 1: GET HAND FROM UNITY
+with torch.no_grad():
 
-def get_hand_from_unity(host, port, message):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-    client_socket.sendall(message.encode('utf-8'))
-    client_socket.close()
-
-
-host = '127.0.0.1'  # Localhost
-port = 9999         # Port number should match the Unity server port
-
-input("Press enter when hand in position")
-
-HAND_ID = "BEM_HAND" + str(random.randint(0,1000))
-print(HAND_ID)
-get_hand_from_unity(host, port,HAND_ID)
-
-#STEP 2: LOAD MESH
-
-MAX_WAIT = 100000000
-waits = 0
-METADATA_PATH = './Media/Metadata/'+ HAND_ID + '_metadata.json'
-while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
-    waits -= 1
+    def get_best_position(intersections, centres, normals, index_pos):
+        possible_points = []
+        for p in intersections:
+            _, closest_centre_ids = vedo.closest(p, centres, return_ids =True)
+            normal = normals[closest_centre_ids]
+            if normal[2] > 0 :
+                possible_points.append(p)
+            
+        if len(possible_points) == 0:
+            return []
+        if len(possible_points) == 1:
+            return possible_points[0]
+        else:
+            min_dist = 0
+            best_p = None
+            for p in possible_points:
+                dist_z = (p[2] - index_pos[2])**2
+                if dist_z < min_dist:
+                    best_p = p
+                    min_dist = dist_z
+            return best_p
 
 
-HAND_HIEGHT = 0.06
-HAND_PATH = './Media/Hands/'+ HAND_ID + '.obj'
-hand_origional = load_scatterer(HAND_PATH)
-h = hand_origional.clone()
+    def rescale_ABC(A,B,C, factor=1):
+        AB = B-A
+        AC = C-A
+        
+        B = A + (factor) * AB + (1-factor)*AC
+        C = A + (1-factor) * AB + (factor)*AC
+        A = A + (1-factor) * AB + (1-factor)*AC
 
-correction = centre_scatterer(hand_origional)
-print(correction)
+        return A,B,C
+        
 
-#STEP 3: PROCESS MESH
+    #STEP 1: GET HAND FROM UNITY
 
-hand = hand_origional.clean().smooth()
-print(hand.is_closed())
-
-hand.collapse_edges(c.wavelength/2)
-hand.filename = scatterer_file_name(hand)
-
-edges = hand.count_vertices()
-mask = np.where(edges != 3)[0]
-hand.delete_cells(mask)
-hand.filename = scatterer_file_name(hand)
+    def get_hand_from_unity(host, port, message):
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((host, port))
+        client_socket.sendall(message.encode('utf-8'))
+        client_socket.close()
 
 
-hand.subdivide(2)
-hand.compute_cell_size()
-hand.filename = scatterer_file_name(hand)
+    host = '127.0.0.1'  # Localhost
+    port = 9999         # Port number should match the Unity server port
+
+    input("Press enter when hand in position")
+
+    HAND_ID = "BEM_HAND" + str(random.randint(0,1000))
+    print(HAND_ID)
+    get_hand_from_unity(host, port,HAND_ID)
+
+    #STEP 2: LOAD MESH
+
+    MAX_WAIT = 100000000
+    waits = 0
+    METADATA_PATH = './Media/Metadata/'+ HAND_ID + '_metadata.json'
+    while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
+        waits -= 1
 
 
-#STEP 4: LOAD METADATA
+    HAND_HIEGHT = 0.06
+    HAND_PATH = './Media/Hands/'+ HAND_ID + '.obj'
+    hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
+    h = hand_origional.clone()
 
-metadata = json.load(open(METADATA_PATH))
+    correction = centre_scatterer(hand_origional)
 
-#STEP 5: GET PALM POSITIONS
+    #STEP 3: PROCESS MESH
 
-thumb_UC = metadata['Fingers']['TYPE_THUMB']['TYPE_METACARPAL']['NextJoint']
-index_UC = metadata['Fingers']['TYPE_INDEX']['TYPE_METACARPAL']['NextJoint']
-little_UC = metadata['Fingers']['TYPE_PINKY']['TYPE_METACARPAL']['NextJoint']
+    hand = hand_origional.clean().smooth()
+
+    hand.collapse_edges(c.wavelength/2)
+    hand.filename = scatterer_file_name(hand)
+
+    edges = hand.count_vertices()
+    mask = np.where(edges != 3)[0]
+    hand.delete_cells(mask)
+    hand.filename = scatterer_file_name(hand)
 
 
-thumb = [thumb_UC[i] + correction[i] for i in [0,1,2]]
-index = [index_UC[i] + correction[i] for i in [0,1,2]]
-little = [little_UC[i] + correction[i] for i in [0,1,2]]
 
-thumb[2] -= 0.01
-index[2] -= 0.01
-little[2] -= 0.01
+    hand.subdivide(2)
+    hand.compute_cell_size()
+    hand.filename = scatterer_file_name(hand)
 
-centres = hand.cell_centers
 
-N = len(centres)
+    #STEP 4: LOAD METADATA
 
-_, centre_t = vedo.closest(thumb, centres)
-ID_t = np.where(centre_t==centres)[0][0]
+    metadata = json.load(open(METADATA_PATH))
 
-_, centre_i = vedo.closest(index, centres)
-ID_i = np.where(centre_i==centres)[0][0]
+    #STEP 5: GET PALM POSITIONS
 
-_, centre_l = vedo.closest(little, centres)
-ID_l = np.where(centre_l==centres)[0][0]
+    thumb_UC = metadata['Fingers']['TYPE_THUMB']['TYPE_METACARPAL']['NextJoint']
+    index_UC = metadata['Fingers']['TYPE_INDEX']['TYPE_METACARPAL']['NextJoint']
+    little_UC = metadata['Fingers']['TYPE_PINKY']['TYPE_METACARPAL']['NextJoint']
 
-print(ID_t, ID_i, ID_l)
-colours = torch.zeros((N))
-colours[ID_t] = 1
-colours[ID_i] = 1
-colours[ID_l] = 1
 
-#STEP 6: COMPUTE PATH
+    thumb = [thumb_UC[i] + correction[i] for i in [0,1,2]]
+    index = [index_UC[i] + correction[i] for i in [0,1,2]]
+    little = [little_UC[i] + correction[i] for i in [0,1,2]]
 
-#STEP 7: COMPUTE PHASES
+    thumb[2] -= 0.01
+    index[2] -= 0.01
+    little[2] -= 0.01
 
-#STEP 8: RENDER HAPTICS 
+    centres = hand.cell_centers
 
-Visualise_mesh(hand,colours ,equalise_axis=True)
+    N = len(centres)
+
+    _, centre_t = vedo.closest(thumb, centres)
+
+    _, centre_i = vedo.closest(index, centres)
+
+    _, centre_l = vedo.closest(little, centres)
+
+    #STEP 6: COMPUTE PATH
+
+    number = random.randint(1,9)
+    print(number)
+    A,B,C = rescale_ABC(centre_i, centre_l, centre_t, factor=0.75)
+    path = get_numeral(number, A,B,C) #COME BACK - CAN LEAD TO NUMBER OFF THE HAND. MAYBE SCALE BOX?
+    path = interpolate_path(path, 100)
+    # p = [vedo.Point(p_) for p_ in path]
+
+    #STEP 7: MAP TO HAND
+
+    DELTA = 0.05
+    lines_points = [((x,y,z-DELTA),(x,y,z+DELTA)) for (x,y,z) in path]
+    lines = [[p0,p1] for (p0, p1) in lines_points]
+
+
+    intersections = [hand.intersect_with_line(p0,p1) for (p0, p1) in lines_points ]
+    best_ps = [get_best_position(inter, centres, hand.cell_normals, centre_i) for inter in intersections]
+    OFFSET = 0.01
+    best_ps_offset = []
+    for point in best_ps:
+        _,c = vedo.closest(point, centres, return_ids=True)
+
+        normal = hand.cell_normals[c]
+        best_ps_offset.append([point[i] + normal[i]*OFFSET for i in [0,1,2]])
+
+
+    # vedo.show(hand, *ps_best)
+
+    #STEP 8: COMPUTE PHASES
+
+    board = BOTTOM_BOARD
+    # points = torch.stack([torch.tensor(p) for p in best_ps_offset]).unsqueeze(2).to(device).to(DTYPE)
+    # H = get_cache_or_compute_H(hand, board, cache_name = HAND_ID)
+
+
+    holograms = []
+    for p in best_ps_offset:
+        p = create_points(1,1,x=p[0],y=p[1],z=p[2])
+        # E = compute_E(hand, p, board, H=H)
+        x = wgs(p, board=board)
+        holograms.append(x)
+
+    #STEP 8: RENDER HAPTICS 
+
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+
+
+    fig = plt.figure()
+    # E = compute_E(hand, get_centres_as_points(hand), board, H=H)
+    # pressure = torch.abs(E@holograms[0])
+    pressure = propagate_abs(holograms[0], get_centres_as_points(hand), board=board)
+    print(torch.max(pressure),torch.min(pressure))
+    img_ax = Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
+
+
+    def traverse(index):
+            print(index)
+            plt.cla()
+            pressure = propagate_abs(holograms[index], get_centres_as_points(hand), board=board)
+            # pressure = torch.abs(E@holograms[index])
+            print(torch.max(pressure),torch.min(pressure))
+            Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
+
+
+    lap_animation = animation.FuncAnimation(fig, traverse, frames=len(holograms), interval=500)
+
+    lap_animation.save('Results.gif', dpi=80, writer='imagemagick')
