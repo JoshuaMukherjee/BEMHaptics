@@ -2,6 +2,6 @@
 /Draft/*
 *.pdf
 .DS_Store
-
+*.gif
 LeapMotion
 BEM_Haptics
