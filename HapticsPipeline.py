@@ -1,18 +1,22 @@
+import time
+pre_start_time = time.monotonic_ns()
+
 import socket
 import random
 import os
 
-from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name, get_centre_of_mass_as_points, get_centres_as_points
+from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name, get_centres_as_points
 from acoustools.Paths import get_numeral, interpolate_path
 from acoustools.Solvers import wgs
 from acoustools.BEM import compute_E, get_cache_or_compute_H
 from acoustools.Visualiser import Visualise_mesh
 import acoustools.Constants as c
-from acoustools.Utilities import device, DTYPE, BOTTOM_BOARD, create_points, propagate_abs
+from acoustools.Utilities import BOTTOM_BOARD, create_points, propagate_abs
 import vedo
 import numpy as np
 import json
 import torch
+import time
 
 with torch.no_grad():
 
@@ -21,7 +25,7 @@ with torch.no_grad():
         for p in intersections:
             _, closest_centre_ids = vedo.closest(p, centres, return_ids =True)
             normal = normals[closest_centre_ids]
-            if normal[2] > 0 :
+            if normal[2] < 0 :
                 possible_points.append(p)
             
         if len(possible_points) == 0:
@@ -57,12 +61,16 @@ with torch.no_grad():
         client_socket.connect((host, port))
         client_socket.sendall(message.encode('utf-8'))
         client_socket.close()
+    
+    init_time = time.monotonic_ns()
 
 
     host = '127.0.0.1'  # Localhost
     port = 9999         # Port number should match the Unity server port
 
     input("Press enter when hand in position")
+
+    start_time = time.monotonic_ns()
 
     HAND_ID = "BEM_HAND" + str(random.randint(0,1000))
     print(HAND_ID)
@@ -76,6 +84,7 @@ with torch.no_grad():
     while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
         waits -= 1
 
+    get_hand_time = time.monotonic_ns()
 
     HAND_HIEGHT = 0.06
     HAND_PATH = './Media/Hands/'+ HAND_ID + '.obj'
@@ -84,9 +93,12 @@ with torch.no_grad():
 
     correction = centre_scatterer(hand_origional)
 
-    #STEP 3: PROCESS MESH
+    corrected_hand_time = time.monotonic_ns()
 
+    #STEP 3: PROCESS MESH
+    
     hand = hand_origional.clean().smooth()
+    
 
     hand.collapse_edges(c.wavelength/2)
     hand.filename = scatterer_file_name(hand)
@@ -99,13 +111,21 @@ with torch.no_grad():
 
 
     hand.subdivide(2)
+    
+    hand.compute_normals()
+    hand = hand.reverse(cells=True, normals=True)
+
     hand.compute_cell_size()
     hand.filename = scatterer_file_name(hand)
+
+    process_mesh_time = time.monotonic_ns()
 
 
     #STEP 4: LOAD METADATA
 
     metadata = json.load(open(METADATA_PATH))
+
+    metadata_laod_tome = time.monotonic_ns()
 
     #STEP 5: GET PALM POSITIONS
 
@@ -132,6 +152,8 @@ with torch.no_grad():
 
     _, centre_l = vedo.closest(little, centres)
 
+    find_corners_time = time.monotonic_ns()
+
     #STEP 6: COMPUTE PATH
 
     number = random.randint(1,9)
@@ -139,6 +161,8 @@ with torch.no_grad():
     A,B,C = rescale_ABC(centre_i, centre_l, centre_t, factor=0.75)
     path = get_numeral(number, A,B,C) #COME BACK - CAN LEAD TO NUMBER OFF THE HAND. MAYBE SCALE BOX?
     path = interpolate_path(path, 100)
+
+    compute_path_time = time.monotonic_ns()
     # p = [vedo.Point(p_) for p_ in path]
 
     #STEP 7: MAP TO HAND
@@ -150,54 +174,65 @@ with torch.no_grad():
 
     intersections = [hand.intersect_with_line(p0,p1) for (p0, p1) in lines_points ]
     best_ps = [get_best_position(inter, centres, hand.cell_normals, centre_i) for inter in intersections]
-    OFFSET = 0.01
-    best_ps_offset = []
-    for point in best_ps:
-        _,c = vedo.closest(point, centres, return_ids=True)
 
-        normal = hand.cell_normals[c]
-        best_ps_offset.append([point[i] + normal[i]*OFFSET for i in [0,1,2]])
-
-
-    # vedo.show(hand, *ps_best)
+    best_point_time = time.monotonic_ns()
 
     #STEP 8: COMPUTE PHASES
 
+
     board = BOTTOM_BOARD
     # points = torch.stack([torch.tensor(p) for p in best_ps_offset]).unsqueeze(2).to(device).to(DTYPE)
-    # H = get_cache_or_compute_H(hand, board, cache_name = HAND_ID)
+    H = get_cache_or_compute_H(hand, board, cache_name = HAND_ID, use_LU=True)
+
+    compute_H_time = time.monotonic_ns()
 
 
     holograms = []
-    for p in best_ps_offset:
+    for p in best_ps:
         p = create_points(1,1,x=p[0],y=p[1],z=p[2])
-        # E = compute_E(hand, p, board, H=H)
-        x = wgs(p, board=board)
+        E = compute_E(hand, p, board, H=H)
+        x = wgs(p, board=board, A=E)
         holograms.append(x)
 
+    compute_holograms_time = time.monotonic_ns()
+
     #STEP 8: RENDER HAPTICS 
+
+    print('Init time',(init_time - pre_start_time)/1e9 ,'seconds')
+    print('Start Time (inc. wait)', (start_time - init_time)/1e9,'seconds')
+    print('Get hand from Unity', (get_hand_time - start_time)/1e9,'seconds')
+    print('Set hand position to (0,0,0)', (corrected_hand_time - get_hand_time)/1e9,'seconds')
+    print('Process mesh, smooth & subsample', (process_mesh_time - corrected_hand_time)/1e9,'seconds')
+    print('Load metadata', (metadata_laod_tome - process_mesh_time)/1e9,'seconds')
+    print('Find corners of palm', (find_corners_time - metadata_laod_tome)/1e9,'seconds')
+    print('Compute path of number', (compute_path_time - find_corners_time)/1e9,'seconds')
+    print('Match points to palm', (best_point_time - compute_path_time)/1e9,'seconds')
+    print('Compute H', (compute_H_time - best_point_time)/1e9,'seconds')
+    print('Compute holograms', (compute_holograms_time - compute_H_time)/1e9,'seconds')
+
+    exit()
 
     import matplotlib.pyplot as plt
     import matplotlib.animation as animation
 
 
     fig = plt.figure()
-    # E = compute_E(hand, get_centres_as_points(hand), board, H=H)
+    E = compute_E(hand, get_centres_as_points(hand), board, H=H)
     # pressure = torch.abs(E@holograms[0])
-    pressure = propagate_abs(holograms[0], get_centres_as_points(hand), board=board)
+    pressure = propagate_abs(holograms[0], get_centres_as_points(hand), board=board, A=E)
     print(torch.max(pressure),torch.min(pressure))
     img_ax = Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
+
 
 
     def traverse(index):
             print(index)
             plt.cla()
-            pressure = propagate_abs(holograms[index], get_centres_as_points(hand), board=board)
-            # pressure = torch.abs(E@holograms[index])
+            pressure = propagate_abs(holograms[index], get_centres_as_points(hand), board=board, A=E)
             print(torch.max(pressure),torch.min(pressure))
             Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
 
 
-    lap_animation = animation.FuncAnimation(fig, traverse, frames=len(holograms), interval=500)
+    lap_animation = animation.FuncAnimation(fig, traverse, frames=len(holograms), interval=100)
 
     lap_animation.save('Results.gif', dpi=80, writer='imagemagick')
