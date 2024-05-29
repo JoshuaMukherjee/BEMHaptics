@@ -5,6 +5,10 @@ import socket
 import random
 import os
 
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name, get_centres_as_points
 from acoustools.Paths import get_numeral, interpolate_path
 from acoustools.Solvers import wgs
@@ -17,6 +21,9 @@ import numpy as np
 import json
 import torch
 import time
+
+SAMPLE_FRACTION = 0.65
+ITERATIONS = 50
 
 with torch.no_grad():
 
@@ -100,8 +107,8 @@ with torch.no_grad():
     hand = hand_origional.clean().smooth()
     
 
-    hand.collapse_edges(c.wavelength/2)
-    hand.filename = scatterer_file_name(hand)
+    # hand.collapse_edges(c.wavelength/2)
+    # hand.filename = scatterer_file_name(hand)
 
     edges = hand.count_vertices()
     mask = np.where(edges != 3)[0]
@@ -109,8 +116,8 @@ with torch.no_grad():
     hand.filename = scatterer_file_name(hand)
 
 
-
-    hand.subdivide(2)
+    hand.subdivide(2)        
+    hand = hand.decimate(SAMPLE_FRACTION)
     
     hand.compute_normals()
     hand = hand.reverse(cells=True, normals=True)
@@ -119,7 +126,6 @@ with torch.no_grad():
     hand.filename = scatterer_file_name(hand)
 
     process_mesh_time = time.monotonic_ns()
-
 
     #STEP 4: LOAD METADATA
 
@@ -163,7 +169,6 @@ with torch.no_grad():
     path = interpolate_path(path, 100)
 
     compute_path_time = time.monotonic_ns()
-    # p = [vedo.Point(p_) for p_ in path]
 
     #STEP 7: MAP TO HAND
 
@@ -181,7 +186,6 @@ with torch.no_grad():
 
 
     board = BOTTOM_BOARD
-    # points = torch.stack([torch.tensor(p) for p in best_ps_offset]).unsqueeze(2).to(device).to(DTYPE)
     H = get_cache_or_compute_H(hand, board, cache_name = HAND_ID, use_LU=True)
 
     compute_H_time = time.monotonic_ns()
@@ -189,10 +193,11 @@ with torch.no_grad():
 
     holograms = []
     for p in best_ps:
-        p = create_points(1,1,x=p[0],y=p[1],z=p[2])
-        E = compute_E(hand, p, board, H=H)
-        x = wgs(p, board=board, A=E)
-        holograms.append(x)
+        if p is not None:
+            p = create_points(1,1,x=p[0],y=p[1],z=p[2])
+            E = compute_E(hand, p, board, H=H)
+            x = wgs(p, board=board, A=E, iter=ITERATIONS)
+            holograms.append(x)
 
     compute_holograms_time = time.monotonic_ns()
 
@@ -210,27 +215,19 @@ with torch.no_grad():
     print('Compute H', (compute_H_time - best_point_time)/1e9,'seconds')
     print('Compute holograms', (compute_holograms_time - compute_H_time)/1e9,'seconds')
 
-    exit()
-
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-
-
+  
     fig = plt.figure()
     E = compute_E(hand, get_centres_as_points(hand), board, H=H)
-    # pressure = torch.abs(E@holograms[0])
     pressure = propagate_abs(holograms[0], get_centres_as_points(hand), board=board, A=E)
     print(torch.max(pressure),torch.min(pressure))
-    img_ax = Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
-
-
+    img_ax = Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig, azim=135)
 
     def traverse(index):
-            print(index)
-            plt.cla()
-            pressure = propagate_abs(holograms[index], get_centres_as_points(hand), board=board, A=E)
-            print(torch.max(pressure),torch.min(pressure))
-            Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig)
+        print(index)
+        plt.cla()
+        pressure = propagate_abs(holograms[index], get_centres_as_points(hand), board=board, A=E)
+        print(torch.max(pressure),torch.min(pressure))
+        Visualise_mesh(hand,pressure ,equalise_axis=True, show=False, fig=fig, azim=135)
 
 
     lap_animation = animation.FuncAnimation(fig, traverse, frames=len(holograms), interval=100)
