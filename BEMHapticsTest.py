@@ -1,8 +1,8 @@
 from acoustools.Mesh import load_scatterer, get_centres_as_points, scatterer_file_name, rotate, get_normals_as_points, centre_scatterer
 import acoustools.Constants as c
-from acoustools.Visualiser import Visualise_mesh, Visualise
+from acoustools.Visualiser import Visualise_mesh, Visualise, Visualise_line
 from acoustools.BEM import get_cache_or_compute_H, compute_E, propagate_BEM_pressure
-from acoustools.Utilities import BOTTOM_BOARD, create_points, propagate, forward_model
+from acoustools.Utilities import BOTTOM_BOARD, create_points, propagate, forward_model, device
 from acoustools.Solvers import wgs, gradient_descent_solver
 
 
@@ -81,34 +81,73 @@ x = wgs(p,A=E, board=BOTTOM_BOARD, iter=200)
 
 print('Plotting...')
 
+A = p.clone().squeeze()
+A[0]-=0.02
 
-p_pressure = torch.abs(E@x)
-print(p_pressure)
+B = p.clone().squeeze()
+B[0]+=0.02
 
-centres = get_centres_as_points(hand) 
-E_centres = compute_E(hand,centres,BOTTOM_BOARD, H=H)
+steps = 1000
+AB = B-A
+step = AB / steps
+points = []
+for i in range(steps):
+    pt = A + i*step
+    
+    ps = hand.intersect_with_line([pt[0],pt[1],pt[2]+0.01],[pt[0],pt[1],pt[2]-0.01])
+
+    if len(ps) > 0:
+        dists = [pt[2]**2 for pt in ps]
+        idx= dists.index(min(dists))
+
+        pt = torch.tensor(ps[idx])
+        pt[2] -= 0.002
 
 
+        pt = pt.unsqueeze(0)
+        
+
+        points.append(pt)
+
+# vedo.show(hand, vedo.Points([pt.squeeze() for pt in points]))
+points = torch.stack(points, 2).to(device)
+print(points.shape)
 x_f = wgs(p, board=BOTTOM_BOARD, iter=200)
-p_pressure_F = torch.abs(propagate(x_f,p, board=BOTTOM_BOARD))
-print(p_pressure_F)
+print(propagate_BEM_pressure(x_f, p,hand,BOTTOM_BOARD,H))
+p_bem = Visualise_line(A,B,x,points=points,board=BOTTOM_BOARD, propagate_fun=propagate_BEM_pressure,propagate_args={'scatterer':hand,"H":H}, show=False)
+p_pm = Visualise_line(A,B,x_f,points=points,board=BOTTOM_BOARD, propagate_fun=propagate_BEM_pressure,propagate_args={'scatterer':hand,"H":H}, show=False)
 
-
-pressure_E = torch.abs(E_centres@x)
-pressure_F = torch.abs(E_centres@x_f)
-
-
-
-fig = plt.figure()
-ax =  Visualise_mesh(hand, pressure_E.flatten(), points=p, show=False, subplot=121, fig=fig, equalise_axis=True, vmax =5000)
-ax2 = Visualise_mesh(hand, pressure_F.flatten(), points=p, show=False, subplot=122, fig=fig, equalise_axis=True, vmax =5000)
-
-def update_view(event):
-    if event.name == 'button_press_event' and event.inaxes == ax:
-        ax2.view_init(elev=ax.elev, azim=ax.azim)
-
-# Connect the event handler
-fig.canvas.mpl_connect('button_press_event', update_view)
-
-
+plt.plot(p_bem.detach().cpu().flatten(),label='BEM')
+plt.plot(p_pm.detach().cpu().flatten(),label='PM')
+plt.legend()
+plt.ylabel("Pressure (Pa)")
 plt.show()
+
+# p_pressure = torch.abs(E@x)
+# print(p_pressure)
+
+# centres = get_centres_as_points(hand) 
+# E_centres = compute_E(hand,centres,BOTTOM_BOARD, H=H)
+
+
+# x_f = wgs(p, board=BOTTOM_BOARD, iter=200)
+# p_pressure_F = torch.abs(propagate(x_f,p, board=BOTTOM_BOARD))
+# print(p_pressure_F)
+
+
+# pressure_E = torch.abs(E_centres@x)
+# pressure_F = torch.abs(E_centres@x_f)
+
+# fig = plt.figure()
+# ax =  Visualise_mesh(hand, pressure_E.flatten(), points=p, show=False, subplot=121, fig=fig, equalise_axis=True, vmax =5000)
+# ax2 = Visualise_mesh(hand, pressure_F.flatten(), points=p, show=False, subplot=122, fig=fig, equalise_axis=True, vmax =5000)
+
+# def update_view(event):
+#     if event.name == 'button_press_event' and event.inaxes == ax:
+#         ax2.view_init(elev=ax.elev, azim=ax.azim)
+
+# # Connect the event handler
+# fig.canvas.mpl_connect('button_press_event', update_view)
+
+
+# plt.show()
