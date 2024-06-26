@@ -1,7 +1,8 @@
-/Media/*
+Media
 /Draft/*
 *.pdf
 .DS_Store
 *.gif
 LeapMotion
 BEM_Haptics
+__pycache__
