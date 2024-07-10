@@ -83,22 +83,31 @@ def get_hand_to_path(participant_id, path):
         waits = 0
         METADATA_PATH = path + 'Metadata/' + HAND_ID + '_metadata.json'
         print(METADATA_PATH)
-        while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
-            waits -= 1
+        DONE = False
+        waits_2 = 0
+        while not DONE and waits_2 < MAX_WAIT:
+            while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
+                waits += 1
 
-        print('Got Hand')
-        get_hand_time = time.monotonic_ns()
+            print('Got Hand')
+            get_hand_time = time.monotonic_ns()
 
-        HAND_HIEGHT = 0.06
-        HAND_PATH = path + 'Hands/' + HAND_ID + '.obj'
-        hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
-        h = hand_origional.clone()
+            HAND_PATH = path + 'Hands/' + HAND_ID + '.obj'
+            try:
+                hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
+                DONE = True
+            except:
+                waits_2 += 1
+
+        # h = hand_origional.clone()
 
         correction = centre_scatterer(hand_origional)
 
         corrected_hand_time = time.monotonic_ns()
 
         #STEP 3: PROCESS MESH
+
+        print('Processing...')
         
         hand = hand_origional.clean().smooth()
         

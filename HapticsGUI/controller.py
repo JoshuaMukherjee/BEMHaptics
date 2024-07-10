@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 
 class Controller(tk.Tk):
 
@@ -16,6 +17,9 @@ class Controller(tk.Tk):
         self.frames = {}
         
         self.data = {}
+
+        self.order = [0,1,2,3,4,5]
+        random.shuffle(self.order)
 
         if page_args is None:
             page_args = [{}]

@@ -5,9 +5,9 @@ from acoustools.Levitator import LevitatorController
 import time, pickle, random
 
 mat_to_world = (1, 0, 0, 0,
-                 0, 1, 0, 0,
-                 0, 0, 1, 0,
-                 0, 0, 0, 1)
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1)
 
 lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
 lev.set_frame_rate(200)
@@ -28,14 +28,16 @@ def f(x):
             
             x.controller.data['bem'] = bem
             x.controller.data['true_number'] = number
-
+            #Change label - rendering...
+            x.into_label['text']  = 'Rendering...'
+            x.update()
             lev.levitate(holograms, num_loops=10)
-            print(number)
+            print('Number:',number)
             break
         except Exception as e:
             print(e)
     lev.turn_off()
-    print((times[-1] - times[0]) / 1e9)
+    print('Time:',(times[-1] - times[0]) / 1e9)
     x.into_label['text'] = old_text
 
 def write_responses(controller):
@@ -51,14 +53,19 @@ def write_responses(controller):
         f.write('\n')
         f.write(str(controller.data["pose"]))
         f.write('\n')
+    
+    pick_img(None, controller)
 
-def pick_img(x):
-    controller = x.controller
-    pose = random.randint(0,5)
+def pick_img(x, controller=None):
+    global index
+    if x is not None:
+        controller = x.controller
+    pose = controller.order[index % len(controller.order)]
+
     controller.data["pose"] = pose
-    print(pose)
     img = controller.imgs[pose]
-    print(img)
+
+    print('Pose',pose, img)
 
     controller.frames['scan_page'].img_label.grid_forget()
     controller.frames['scan_page'].img_label.configure(image=img)

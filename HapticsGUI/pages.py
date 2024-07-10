@@ -246,7 +246,7 @@ class Response_Page(tk.Frame):
             
             self.i += 1
             if self.rest_id is not None:
-               print(self.i % self.rest_id)
+               # print(self.i % self.rest_id)
                if self.i % self.rest_id == 0:
                   self.controller.show_frame(self.rest_page)
                elif self.next_page is not None:
