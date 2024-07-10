@@ -2,12 +2,12 @@ from controller import Controller
 from pages import ID_page, Text_Page, Response_Page
 from haptics_code import get_hand_to_path
 from acoustools.Levitator import LevitatorController
-import time, pickle
+import time, pickle, random
 
-mat_to_world = (-1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1)
+mat_to_world = (1, 0, 0, 0,
+                 0, 1, 0, 0,
+                 0, 0, 1, 0,
+                 0, 0, 0, 1)
 
 lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
 lev.set_frame_rate(200)
@@ -49,6 +49,21 @@ def write_responses(controller):
         f.write('\n')
         f.write(str(controller.data["number"]))
         f.write('\n')
+        f.write(str(controller.data["pose"]))
+        f.write('\n')
+
+def pick_img(x):
+    controller = x.controller
+    pose = random.randint(0,5)
+    controller.data["pose"] = pose
+    print(pose)
+    img = controller.imgs[pose]
+    print(img)
+
+    controller.frames['scan_page'].img_label.grid_forget()
+    controller.frames['scan_page'].img_label.configure(image=img)
+    controller.frames['scan_page'].img_label.image = img
+    controller.frames['scan_page'].img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
 
 
 pages = [ID_page, Text_Page, Text_Page, Response_Page,Text_Page]
@@ -69,12 +84,14 @@ page_args = [
             "text":"You will have a randomly chosen number 1-9 rendered on your hand. \n You will be asked to predict which number you felt and also rank how intense the sensation was ",
             "wraplength":800
             },
+        "button_func": lambda x: pick_img(x),
         "next_page": 'scan_page'
     }, 
 
     {
         'text_args':{
-            "text":"Press Button when hand is in place..."
+            "text":"Orient your hand like this (as viewed from below - your palm should face down). Press the button when in place",
+            "wraplength":800
             },
         "button_func": lambda x: f(x),
         "next_page": 'response_page'
@@ -103,6 +120,8 @@ page_args = [
 
 page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page']
 
+pth = './HapticsGUI/Media/HandPositions/'
+imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'pinch_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']
 
-gui = Controller(pages, page_names, page_args)
+gui = Controller(pages, page_names, page_args,imgs=imgs)
 gui.mainloop()

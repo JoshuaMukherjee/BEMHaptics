@@ -112,6 +112,9 @@ class Text_Page(tk.Frame):
       self.into_label = ttk.Label(self, **text_args)
       self.into_label.grid(row = 0, column = 0, padx = 10, pady = 10) 
 
+      self.img_label = ttk.Label(self)
+      self.img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
+
       self.sub_btn=tk.Button(self, command = self.submit, **button_args)
      
 
@@ -123,7 +126,7 @@ class Text_Page(tk.Frame):
    
    def show(self):
       self.sub_btn.grid_forget()
-      self.sub_btn.after(self.button_delay, lambda: self.sub_btn.grid(row = 1, column = 0, pady = 10)  )
+      self.sub_btn.after(self.button_delay, lambda: self.sub_btn.grid(row = 2, column = 0, pady = 10)  )
 
 
 
