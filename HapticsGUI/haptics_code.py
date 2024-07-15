@@ -186,6 +186,7 @@ def get_hand_to_path(participant_id, path):
 
         intersections = [hand.intersect_with_line(p0,p1) for (p0, p1) in lines_points ]
         best_ps = [get_best_position(inter, centres, hand.cell_normals, centre_i) for inter in intersections]
+        # print(best_ps)
 
         best_point_time = time.monotonic_ns()
 
@@ -202,7 +203,7 @@ def get_hand_to_path(participant_id, path):
         bem = random.choice([0,1])
 
         for p in best_ps:
-            if len(p) > 0:
+            if p is not None and len(p) > 0:
                 p = create_points(1,1,x=p[0],y=p[1],z=p[2])
                 if bem:
                     E = compute_E(hand, p, board, H=H)

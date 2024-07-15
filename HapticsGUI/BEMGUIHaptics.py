@@ -9,11 +9,13 @@ mat_to_world = (1, 0, 0, 0,
                 0, 0, 1, 0,
                 0, 0, 0, 1)
 
-lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
+# lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
+lev = LevitatorController(ids=(-1,),matBoardToWorld=mat_to_world)
 lev.set_frame_rate(200)
 
 index = 0
 REST_IDX = 2
+END_ID = 4
 
 def f(x):
     global index
@@ -35,7 +37,9 @@ def f(x):
             print('Number:',number)
             break
         except Exception as e:
-            print(e)
+            print(e, e.args)
+            raise e
+        
     lev.turn_off()
     print('Time:',(times[-1] - times[0]) / 1e9)
     x.into_label['text'] = old_text
@@ -73,7 +77,7 @@ def pick_img(x, controller=None):
     controller.frames['scan_page'].img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
 
 
-pages = [ID_page, Text_Page, Text_Page, Response_Page,Text_Page]
+pages = [ID_page, Text_Page, Text_Page, Response_Page,Text_Page,Text_Page]
 
 page_args = [
     {
@@ -112,7 +116,9 @@ page_args = [
          "next_page": 'scan_page',
          "extra_func":write_responses,
          "rest_page":'rest_page',
-         "rest_id":REST_IDX
+         "rest_id":REST_IDX,
+         "end_page":'end_page',
+         "end_id":END_ID
     },
     {
         'text_args':{
@@ -122,10 +128,16 @@ page_args = [
         "button_delay":5000
         
     },
+    
+    {
+        'text_args':{
+            "text":"Thanks"
+            },
+    }
 ]
 
 
-page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page']
+page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page', 'end_page']
 
 pth = './HapticsGUI/Media/HandPositions/'
 imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'pinch_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']

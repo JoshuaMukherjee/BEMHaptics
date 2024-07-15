@@ -133,7 +133,7 @@ class Text_Page(tk.Frame):
 class Response_Page(tk.Frame):
    def __init__(self, parent, controller, text_args=None, button_args=None,intensity_entry_args = None, 
                 number_entry_args=None, next_page=None, intensity_label_args = None, number_label_args = None, 
-                extra_func = None, extra_func_args={}, rest_page = None, rest_id=None): 
+                extra_func = None, extra_func_args={}, rest_page = None, rest_id=None, end_page = None, end_id = None): 
       tk.Frame.__init__(self, parent)
 
       self.controller = controller
@@ -144,6 +144,9 @@ class Response_Page(tk.Frame):
 
       self.rest_page = rest_page
       self.rest_id = rest_id
+
+      self.end_page = end_page
+      self.end_id = end_id
 
       self.i = 0
 
@@ -245,7 +248,10 @@ class Response_Page(tk.Frame):
             self.intensity_entry.delete(0, 'end')
             
             self.i += 1
-            if self.rest_id is not None:
+
+            if self.i == self.end_id and self.end_page is not None:
+               self.controller.show_frame(self.end_page)
+            elif self.rest_id is not None:
                # print(self.i % self.rest_id)
                if self.i % self.rest_id == 0:
                   self.controller.show_frame(self.rest_page)
