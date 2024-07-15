@@ -6,3 +6,4 @@ Media
 LeapMotion
 BEM_Haptics
 __pycache__
+*.csv
