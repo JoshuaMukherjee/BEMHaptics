@@ -89,7 +89,7 @@ def get_hand_to_path(participant_id, path):
             while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
                 waits += 1
 
-            print('Got Hand')
+            
             get_hand_time = time.monotonic_ns()
 
             HAND_PATH = path + 'Hands/' + HAND_ID + '.obj'
@@ -97,7 +97,9 @@ def get_hand_to_path(participant_id, path):
                 hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
                 DONE = True
             except:
-                waits_2 += 1
+                waits_2 += 1#
+        
+        print('Got Hand')
 
         # h = hand_origional.clone()
 

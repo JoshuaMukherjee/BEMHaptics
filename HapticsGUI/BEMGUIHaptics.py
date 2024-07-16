@@ -9,13 +9,13 @@ mat_to_world = (1, 0, 0, 0,
                 0, 0, 1, 0,
                 0, 0, 0, 1)
 
-# lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
-lev = LevitatorController(ids=(-1,),matBoardToWorld=mat_to_world)
+lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
+# lev = LevitatorController(ids=(-1,),matBoardToWorld=mat_to_world)
 lev.set_frame_rate(200)
 
 index = 0
-REST_IDX = 2
-END_ID = 4
+REST_IDX = 4
+END_ID = 7
 
 def f(x):
     global index
@@ -110,7 +110,7 @@ page_args = [
     },
     {
          'text_args':{
-            "text":"Rate Intensity & Please enter the number you belive you felt...",
+            "text":"Rate Intensity & Please enter the number you believe you felt...",
             "wraplength":800
         },
          "next_page": 'scan_page',
@@ -140,7 +140,7 @@ page_args = [
 page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page', 'end_page']
 
 pth = './HapticsGUI/Media/HandPositions/'
-imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'pinch_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']
+imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']
 
 gui = Controller(pages, page_names, page_args,imgs=imgs)
 gui.mainloop()

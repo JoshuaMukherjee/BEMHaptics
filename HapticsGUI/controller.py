@@ -18,7 +18,7 @@ class Controller(tk.Tk):
         
         self.data = {}
 
-        self.order = [0,1,2,3,4,5]
+        self.order = [0,1,2,3,4]
         random.shuffle(self.order)
 
         if page_args is None:
