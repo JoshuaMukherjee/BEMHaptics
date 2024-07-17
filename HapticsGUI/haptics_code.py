@@ -1,8 +1,8 @@
 from acoustools.Mesh import centre_scatterer, load_scatterer, scatterer_file_name
 from acoustools.Paths import get_numeral, interpolate_path
-from acoustools.Solvers import wgs
+from acoustools.Solvers import wgs, gspat
 from acoustools.BEM import compute_E, get_cache_or_compute_H
-from acoustools.Utilities import BOTTOM_BOARD, create_points
+from acoustools.Utilities import BOTTOM_BOARD, create_points, propagate_abs
 from acoustools.Levitator import LevitatorController
 import vedo
 import numpy as np
@@ -18,6 +18,7 @@ import os
 def get_hand_to_path(participant_id, path):
     SAMPLE_FRACTION = 0.65
     ITERATIONS = 5
+    NUM_POINTS = 200
 
     with torch.no_grad():
 
@@ -168,14 +169,16 @@ def get_hand_to_path(participant_id, path):
         find_corners_time = time.monotonic_ns()
 
         #STEP 6: COMPUTE PATH
+        print('Generating Path...')
 
         number = random.randint(1,9)
 
 
         # print(number)
         A,B,C = rescale_ABC(centre_i, centre_l, centre_t, factor=0.9)
-        path = get_numeral(number, A,B,C) #COME BACK - CAN LEAD TO NUMBER OFF THE HAND. MAYBE SCALE BOX?
-        path = interpolate_path(path, 200)
+        path = get_numeral(number, A,B,C) 
+        path, distance = interpolate_path(path, NUM_POINTS, return_distance=True)
+
 
         compute_path_time = time.monotonic_ns()
 
@@ -203,15 +206,17 @@ def get_hand_to_path(participant_id, path):
    
         holograms = []
         bem = random.choice([0,1])
-
+        print('Computing...')
         for p in best_ps:
             if p is not None and len(p) > 0:
                 p = create_points(1,1,x=p[0],y=p[1],z=p[2])
                 if bem:
                     E = compute_E(hand, p, board, H=H)
                     x = wgs(p, board=board, A=E, iter=ITERATIONS) #BEM
+                    # print(propagate_abs(x, p,board=board, A=E))
                 else:
                     x = wgs(p, board=board, iter=ITERATIONS) # Piston Model
+                    # print(propagate_abs(x, p,board=board))
                 holograms.append(x)
 
 

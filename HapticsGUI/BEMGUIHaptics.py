@@ -14,8 +14,8 @@ lev = LevitatorController(ids=(73,),matBoardToWorld=mat_to_world)
 lev.set_frame_rate(200)
 
 index = 0
-REST_IDX = 4
-END_ID = 7
+REST_IDX = 10
+END_ID = 40
 
 def f(x):
     global index
