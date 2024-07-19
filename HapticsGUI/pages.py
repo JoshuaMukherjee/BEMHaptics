@@ -205,23 +205,31 @@ class Response_Page(tk.Frame):
 
       self.intensity_var=tk.StringVar()
       self.intensity_entry = tk.Entry(self,textvariable = self.intensity_var, **intensity_entry_args)
-      self.intensity_entry.grid(row = 1, column = 1, pady = 10)
+      self.intensity_entry.grid(row = 1, column = 2, pady = 10)
       
       self.num_var=tk.StringVar()
       self.num_entry = tk.Entry(self,textvariable = self.num_var, **number_entry_args)
-      self.num_entry.grid(row = 2, column = 1, pady = 10)
+      self.num_entry.grid(row = 2, column = 2, pady = 10)
 
       self.into_label = ttk.Label(self, **text_args)
       self.into_label.grid(row = 0, column = 0, padx = 10, pady = 10) 
 
       self.intensity_label = ttk.Label(self, **intensity_label_args)
-      self.intensity_label.grid(row = 1, column = 0, padx = 10, pady = 10)
+      self.intensity_label.grid(row = 1, column = 1, padx = 10, pady = 10)
 
       self.number_label = ttk.Label(self, **number_label_args)
-      self.number_label.grid(row = 2, column = 0, padx = 10, pady = 10)
+      self.number_label.grid(row = 2, column = 1, padx = 10, pady = 10)
 
       sub_btn=tk.Button(self, command = self.submit, **button_args)
       sub_btn.grid(row = 3, column = 1, pady = 10)
+
+
+
+      img = tk.PhotoImage(file=r'C:\Users\joshu\Documents\BEMHaptics\HapticsGUI\Media\Numbers.png')
+      self.img_label = ttk.Label(self)
+      self.img_label.configure(image=img)
+      self.img_label.image = img
+      self.img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
 
    def submit(self):
          intensity = self.intensity_entry.get()
