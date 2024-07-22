@@ -15,7 +15,7 @@ lev.set_frame_rate(200)
 
 index = 0
 REST_IDX = 10
-END_ID = 40
+END_ID = 45
 
 def f(x):
     global index
@@ -25,7 +25,7 @@ def f(x):
     while True:
         try:
             index += 1
-            holograms, times, number, bem = get_hand_to_path(x.controller.data["participant_id"]+'_'+str(index), path='HapticsGUI/Media/')
+            holograms, times, number, bem = get_hand_to_path(x.controller.data["participant_id"]+'_'+str(index), path='HapticsGUI/Media/', bem=x.controller.bem, number = x.controller.data['number'])
             pickle.dump(times, open('./HapticsGUI/Media/Times/times_'+x.controller.data["participant_id"] + '_' + str(index),'wb'))
             
             x.controller.data['bem'] = bem
@@ -64,7 +64,11 @@ def pick_img(x, controller=None):
     global index
     if x is not None:
         controller = x.controller
-    pose = controller.order[index % len(controller.order)]
+    
+    random.seed(controller.data["participant_id"] +'_'+ str(index))
+    pose, number = controller.get_next_pose(index)
+    controller.data['number'] = number
+   # pose = controller.order[index % len(controller.order)]
 
     controller.data["pose"] = pose
     img = controller.imgs[pose]

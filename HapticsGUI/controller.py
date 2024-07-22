@@ -1,5 +1,5 @@
 import tkinter as tk
-import random
+import random, itertools
 
 class Controller(tk.Tk):
 
@@ -18,8 +18,15 @@ class Controller(tk.Tk):
         
         self.data = {}
 
-        self.order = [0,1,2,3,4]
-        random.shuffle(self.order)
+        self.positions = [0,1,2,3,4]
+        self.numbers= [1,2,3,4,5,6,7,8,9]
+        self.poses = itertools.product(self.positions, self.numbers)
+
+        self.init_poses = False
+        
+        
+
+        self.bem = random.randint(0,1)
 
         if page_args is None:
             page_args = [{}]
@@ -63,3 +70,9 @@ class Controller(tk.Tk):
         frame.show()
         frame.tkraise()
     
+
+    def get_next_pose(self,index):
+        if not self.init_poses:
+            random.shuffle(self.poses)
+        
+        return self.poses[index]

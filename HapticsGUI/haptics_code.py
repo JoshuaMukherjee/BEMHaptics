@@ -15,7 +15,7 @@ import os
 
 
 
-def get_hand_to_path(participant_id, path):
+def get_hand_to_path(participant_id, path, bem, number):
     SAMPLE_FRACTION = 0.65
     ITERATIONS = 5
     NUM_POINTS = 200
@@ -171,7 +171,7 @@ def get_hand_to_path(participant_id, path):
         #STEP 6: COMPUTE PATH
         print('Generating Path...')
 
-        number = random.randint(1,9)
+        #number = random.randint(1,9)
 
 
         # print(number)
@@ -205,7 +205,7 @@ def get_hand_to_path(participant_id, path):
 
    
         holograms = []
-        bem = random.choice([0,1])
+        #bem = random.choice([0,1])
         print('Computing...')
         for p in best_ps:
             if p is not None and len(p) > 0:
