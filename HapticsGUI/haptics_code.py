@@ -80,7 +80,7 @@ def get_hand_to_path(participant_id, path, bem, number):
 
         #STEP 2: LOAD MESH
 
-        MAX_WAIT = 100000000
+        MAX_WAIT = 10000000
         waits = 0
         METADATA_PATH = path + 'Metadata/' + HAND_ID + '_metadata.json'
         print(METADATA_PATH)
@@ -94,12 +94,15 @@ def get_hand_to_path(participant_id, path, bem, number):
             get_hand_time = time.monotonic_ns()
 
             HAND_PATH = path + 'Hands/' + HAND_ID + '.obj'
-            try:
-                hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
-                DONE = True
-            except:
-                waits_2 += 1#
-        
+            hand_origional = None
+            while hand_origional is None:
+                try:
+                    hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
+                    print(hand_origional)
+                    DONE = True
+                except:
+                    waits_2 += 1#
+            
         print('Got Hand')
 
         # h = hand_origional.clone()
@@ -184,6 +187,8 @@ def get_hand_to_path(participant_id, path, bem, number):
 
         #STEP 7: MAP TO HAND
 
+        print('Mapping to hand...')
+
         DELTA = 0.05
         lines_points = [((x,y,z-DELTA),(x,y,z+DELTA)) for (x,y,z) in path]
         lines = [[p0,p1] for (p0, p1) in lines_points]
@@ -197,6 +202,8 @@ def get_hand_to_path(participant_id, path, bem, number):
 
         #STEP 8: COMPUTE PHASES
 
+        print('Computing H...')
+
 
         board = BOTTOM_BOARD
         H = get_cache_or_compute_H(hand, board, use_LU=True)
@@ -206,7 +213,7 @@ def get_hand_to_path(participant_id, path, bem, number):
    
         holograms = []
         #bem = random.choice([0,1])
-        print('Computing...')
+        print('Computing Path...')
         for p in best_ps:
             if p is not None and len(p) > 0:
                 p = create_points(1,1,x=p[0],y=p[1],z=p[2])

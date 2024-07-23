@@ -20,13 +20,15 @@ class Controller(tk.Tk):
 
         self.positions = [0,1,2,3,4]
         self.numbers= [1,2,3,4,5,6,7,8,9]
-        self.poses = itertools.product(self.positions, self.numbers)
+        self.poses = [i for i in itertools.product(self.positions, self.numbers)]
 
         self.init_poses = False
         
         
 
-        self.bem = random.randint(0,1)
+        # self.bem = random.randint(0,1)
+        self.bem = 1
+        print('BEM', self.bem)
 
         if page_args is None:
             page_args = [{}]
@@ -74,5 +76,6 @@ class Controller(tk.Tk):
     def get_next_pose(self,index):
         if not self.init_poses:
             random.shuffle(self.poses)
+            self.init_poses = True
         
         return self.poses[index]
