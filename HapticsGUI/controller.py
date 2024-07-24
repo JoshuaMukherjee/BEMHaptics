@@ -3,7 +3,7 @@ import random, itertools
 
 class Controller(tk.Tk):
 
-    def __init__(self,pages, page_names, page_args = None,fonts=None, start_page = None,imgs=None, *args, **kwargs): 
+    def __init__(self,pages, page_names, page_args = None,fonts=None, start_page = None,imgs=None,imgs_2=None, *args, **kwargs): 
         tk.Tk.__init__(self, *args, **kwargs)
 
         container = tk.Frame(self)  
@@ -59,6 +59,12 @@ class Controller(tk.Tk):
             for img in imgs:
                 im = tk.PhotoImage(file=img)
                 self.imgs.append(im)
+
+        self.imgs_2 = []
+        if imgs_2 is not None:
+            for img in imgs_2:
+                im = tk.PhotoImage(file=img)
+                self.imgs_2.append(im)
 
 
         container.grid(row=0, column=0, sticky="NESW")

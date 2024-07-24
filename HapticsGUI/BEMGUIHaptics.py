@@ -72,6 +72,7 @@ def pick_img(x, controller=None):
 
     controller.data["pose"] = pose
     img = controller.imgs[pose]
+    img2 = controller.imgs_2[pose]
 
     print('Pose',pose, img)
 
@@ -79,6 +80,11 @@ def pick_img(x, controller=None):
     controller.frames['scan_page'].img_label.configure(image=img)
     controller.frames['scan_page'].img_label.image = img
     controller.frames['scan_page'].img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
+
+    controller.frames['scan_page'].img_label2.grid_forget()
+    controller.frames['scan_page'].img_label2.configure(image=img2)
+    controller.frames['scan_page'].img_label2.image = img2
+    controller.frames['scan_page'].img_label2.grid(row = 1, column = 1, padx = 10, pady = 10) 
 
 
 pages = [ID_page, Text_Page, Text_Page, Response_Page,Text_Page,Text_Page]
@@ -105,7 +111,7 @@ page_args = [
 
     {
         'text_args':{
-            "text":"Orient your hand like this (as viewed from below - your palm should face down). Press the button when in place",
+            "text":"Orient your hand like this (as viewed from below and the side - your palm should face down towards the table). Press the button when in place",
             "wraplength":800
             },
         "button_func": lambda x: f(x),
@@ -126,7 +132,7 @@ page_args = [
     },
     {
         'text_args':{
-            "text":"Please take a rest"
+            "text":"Please take a moment to rest"
             },
         "next_page": 'scan_page',
         "button_delay":5000
@@ -145,6 +151,8 @@ page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page'
 
 pth = './HapticsGUI/Media/HandPositions/'
 imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']
+imgs_side = [pth+'flat_side.png', pth+'ok_side.png', pth+'peace_side.png', pth+'point_side.png', pth+'spiderman_side.png']
 
-gui = Controller(pages, page_names, page_args,imgs=imgs)
+
+gui = Controller(pages, page_names, page_args,imgs=imgs, imgs_2=imgs_side)
 gui.mainloop()

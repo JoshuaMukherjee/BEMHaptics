@@ -115,6 +115,9 @@ class Text_Page(tk.Frame):
       self.img_label = ttk.Label(self)
       self.img_label.grid(row = 1, column = 0, padx = 10, pady = 10) 
 
+      self.img_label2 = ttk.Label(self)
+      self.img_label2.grid(row = 1, column = 1, padx = 10, pady = 10) 
+
       self.sub_btn=tk.Button(self, command = self.submit, **button_args)
      
 
