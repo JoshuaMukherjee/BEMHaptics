@@ -149,7 +149,7 @@ page_args = [
 
 page_names = ['start_page', 'text_page', 'scan_page','response_page','rest_page', 'end_page']
 
-pth = './HapticsGUI/Media/HandPositions/'
+pth = './HapticsGUI/HandPositions/'
 imgs = [pth+'flat_bottom.png', pth+'ok_bottom.png', pth+'peace_bottom.png', pth+'point_bottom.png', pth+'spiderman_bottom.png']
 imgs_side = [pth+'flat_side.png', pth+'ok_side.png', pth+'peace_side.png', pth+'point_side.png', pth+'spiderman_side.png']
 
