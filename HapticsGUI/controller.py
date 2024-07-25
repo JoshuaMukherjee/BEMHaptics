@@ -1,5 +1,5 @@
 import tkinter as tk
-import random, itertools
+import random, itertools, os
 
 class Controller(tk.Tk):
 
@@ -24,11 +24,29 @@ class Controller(tk.Tk):
 
         self.init_poses = False
         
-        
+        order_file = './HapticsGUI/Media/order.txt'
+        try: 
+            f = open(order_file,'r')
+            last = bool(int(f.readlines()[-1]))
+            bem = int(not last)
+            f.close()
+        except FileNotFoundError:
+            f = open(order_file, 'w')
+            bem = 0
+            f.close()
+        f = open(order_file, 'a')
+        f.write(str(bem))
+        f.write('\n')
+        f.close()
+
+        self.bem = bem
+
 
         # self.bem = random.randint(0,1)
-        self.bem = 1
+        # self.bem = 1
         print('BEM', self.bem)
+
+
 
         if page_args is None:
             page_args = [{}]
@@ -83,5 +101,7 @@ class Controller(tk.Tk):
         if not self.init_poses:
             random.shuffle(self.poses)
             self.init_poses = True
+        self.poses = [(0,1), (2,3), (4,5)] + self.poses # Tests
+        
         
         return self.poses[index]
