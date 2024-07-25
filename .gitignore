@@ -8,3 +8,4 @@ BEM_Haptics
 __pycache__
 *.csv
 *.xlsx
+*.zip
