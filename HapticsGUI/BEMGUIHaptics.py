@@ -15,7 +15,7 @@ lev.set_frame_rate(200)
 
 index = 0
 REST_IDX = 10
-END_ID = 45
+END_ID = 48
 
 def f(x):
     global index
@@ -38,7 +38,7 @@ def f(x):
             break
         except Exception as e:
             print(e, e.args)
-            raise e
+            
         
     lev.turn_off()
     print('Time:',(times[-1] - times[0]) / 1e9)
@@ -102,7 +102,7 @@ page_args = [
     
     {
         'text_args':{
-            "text":"You will have a randomly chosen number 1-9 rendered on your hand. \n You will be asked to predict which number you felt and also rank how intense the sensation was ",
+            "text":"You will have a randomly chosen number 1-9 rendered on your hand. \n You will be asked to determine which number you felt and also rank how intense the sensation was ",
             "wraplength":800
             },
         "button_func": lambda x: pick_img(x),
