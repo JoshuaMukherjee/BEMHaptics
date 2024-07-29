@@ -101,7 +101,9 @@ class Controller(tk.Tk):
         if not self.init_poses:
             random.shuffle(self.poses)
             self.init_poses = True
-        self.poses = [(0,1), (2,3), (4,5)] + self.poses # Tests
+            self.poses = [(0,1), (2,3), (4,5)] + self.poses # Tests
+            print(self.poses)
+            print(len(self.poses))
         
         
         return self.poses[index]

@@ -87,7 +87,7 @@ def get_hand_to_path(participant_id, path, bem, number):
         DONE = False
         waits_2 = 0
         while not DONE and waits_2 < MAX_WAIT:
-            while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT:
+            while not os.path.isfile(METADATA_PATH) and waits < MAX_WAIT: #Wait for metadata
                 waits += 1
 
             
@@ -95,7 +95,9 @@ def get_hand_to_path(participant_id, path, bem, number):
 
             HAND_PATH = path + 'Hands/' + HAND_ID + '.obj'
             hand_origional = None
-            while hand_origional is None:
+            if hand_origional is None: # wait till hand is not none
+                time.sleep(0.01)
+                get_hand_from_unity(host, port,HAND_ID)
                 try:
                     hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
                     print(hand_origional)
