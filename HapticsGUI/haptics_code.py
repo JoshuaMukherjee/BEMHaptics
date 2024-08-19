@@ -101,7 +101,8 @@ def get_hand_to_path(participant_id, path, bem, number):
                 try:
                     hand_origional = load_scatterer(HAND_PATH) # SOLVE CRASH WHEN HAND NOT FOUND
                     print(hand_origional)
-                    DONE = True
+                    if hand_origional is not None:
+                        DONE = True
                 except:
                     waits_2 += 1#
             
@@ -116,62 +117,66 @@ def get_hand_to_path(participant_id, path, bem, number):
         #STEP 3: PROCESS MESH
 
         print('Processing...')
+        try:
+            
+            hand = hand_origional.clean().smooth()
+            
+
+            # hand.collapse_edges(c.wavelength/2)
+            # hand.filename = scatterer_file_name(hand)
+
+            edges = hand.count_vertices()
+            mask = np.where(edges != 3)[0]
+            hand.delete_cells(mask)
+            hand.filename = scatterer_file_name(hand)
+
+
+            hand.subdivide(2)        
+            hand = hand.decimate(SAMPLE_FRACTION)
+            
+            hand.compute_normals()
+            hand = hand.reverse(cells=True, normals=True)
+
+            hand.compute_cell_size()
+            hand.filename = scatterer_file_name(hand)
+
+            process_mesh_time = time.monotonic_ns()
+
+            #STEP 4: LOAD METADATA
+
+            metadata = json.load(open(METADATA_PATH))
+
+            metadata_laod_tome = time.monotonic_ns()
+
+            #STEP 5: GET PALM POSITIONS
+
+            thumb_UC = metadata['Fingers']['TYPE_THUMB']['TYPE_METACARPAL']['NextJoint']
+            index_UC = metadata['Fingers']['TYPE_INDEX']['TYPE_METACARPAL']['NextJoint']
+            little_UC = metadata['Fingers']['TYPE_PINKY']['TYPE_METACARPAL']['NextJoint']
+
+
+            thumb = [thumb_UC[i] + correction[i] for i in [0,1,2]]
+            index = [index_UC[i] + correction[i] for i in [0,1,2]]
+            little = [little_UC[i] + correction[i] for i in [0,1,2]]
+
+            thumb[2] -= 0.01
+            index[2] -= 0.01
+            little[2] -= 0.01
+
+            centres = hand.cell_centers
+
+            N = len(centres)
+
+            _, centre_t = vedo.closest(thumb, centres)
+
+            _, centre_i = vedo.closest(index, centres)
+
+            _, centre_l = vedo.closest(little, centres)
+
+            find_corners_time = time.monotonic_ns()
         
-        hand = hand_origional.clean().smooth()
-        
-
-        # hand.collapse_edges(c.wavelength/2)
-        # hand.filename = scatterer_file_name(hand)
-
-        edges = hand.count_vertices()
-        mask = np.where(edges != 3)[0]
-        hand.delete_cells(mask)
-        hand.filename = scatterer_file_name(hand)
-
-
-        hand.subdivide(2)        
-        hand = hand.decimate(SAMPLE_FRACTION)
-        
-        hand.compute_normals()
-        hand = hand.reverse(cells=True, normals=True)
-
-        hand.compute_cell_size()
-        hand.filename = scatterer_file_name(hand)
-
-        process_mesh_time = time.monotonic_ns()
-
-        #STEP 4: LOAD METADATA
-
-        metadata = json.load(open(METADATA_PATH))
-
-        metadata_laod_tome = time.monotonic_ns()
-
-        #STEP 5: GET PALM POSITIONS
-
-        thumb_UC = metadata['Fingers']['TYPE_THUMB']['TYPE_METACARPAL']['NextJoint']
-        index_UC = metadata['Fingers']['TYPE_INDEX']['TYPE_METACARPAL']['NextJoint']
-        little_UC = metadata['Fingers']['TYPE_PINKY']['TYPE_METACARPAL']['NextJoint']
-
-
-        thumb = [thumb_UC[i] + correction[i] for i in [0,1,2]]
-        index = [index_UC[i] + correction[i] for i in [0,1,2]]
-        little = [little_UC[i] + correction[i] for i in [0,1,2]]
-
-        thumb[2] -= 0.01
-        index[2] -= 0.01
-        little[2] -= 0.01
-
-        centres = hand.cell_centers
-
-        N = len(centres)
-
-        _, centre_t = vedo.closest(thumb, centres)
-
-        _, centre_i = vedo.closest(index, centres)
-
-        _, centre_l = vedo.closest(little, centres)
-
-        find_corners_time = time.monotonic_ns()
+        except Exception as e:
+            print(e)
 
         #STEP 6: COMPUTE PATH
         print('Generating Path...')
