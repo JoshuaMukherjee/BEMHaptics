@@ -150,6 +150,7 @@ class Response_Page(tk.Frame):
 
       self.end_page = end_page
       self.end_id = end_id
+      print('end id', self.end_id)
 
       self.i = 0
 

@@ -22,9 +22,9 @@ def f(x):
     old_text = x.into_label['text']
     x.into_label['text'] = 'Scanning... \n Please Wait'
     x.update()
+    index += 1
     while True:
         try:
-            index += 1
             holograms, times, number, bem = get_hand_to_path(x.controller.data["participant_id"]+'_'+str(index), path='HapticsGUI/Media/', bem=x.controller.bem, number = x.controller.data['number'])
             pickle.dump(times, open('./HapticsGUI/Media/Times/times_'+x.controller.data["participant_id"] + '_' + str(index),'wb'))
             
