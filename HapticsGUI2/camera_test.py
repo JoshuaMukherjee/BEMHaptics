@@ -2,13 +2,13 @@ import socket
 import cv2
 import numpy as np
 import pickle
-import trimesh
+import trimesh, vedo
 
 HOST, PORT = "localhost", 9999
 
-data = 'Hello'
-
 vid = cv2.VideoCapture(0)
+vid.set(cv2.CAP_PROP_EXPOSURE, 40) 
+
 
 def recvall(sock):
     BUFF_SIZE = 4096 
@@ -32,7 +32,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     _, encimg = cv2.imencode('.jpg', frame, encode_param)
 
 
-    # cv2.imwrite('img.jpeg', cv2.imdecode(encimg, 1))
+    cv2.imwrite('HapticsGUI2/Media/img.jpeg', cv2.imdecode(encimg, 1))
 
     sock.sendall(bytes(encimg))
 
@@ -42,6 +42,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 #0=LEFT, 1=RIGHT
 i=0
 for mesh in meshes:
-    with open('HapticsGUI2/Meshes/mesh' + str(i) + '.stl', 'w') as f:
+    with open('HapticsGUI2/Media/Meshes/mesh' + str(i) + '.stl', 'w') as f:
         f.write(trimesh.exchange.stl.export_stl_ascii(mesh))
     i+=1
+
+mesh = vedo.load('HapticsGUI2/Media/Meshes/mesh0.stl')
+mesh = mesh.fill_holes(size=100).subdivide(1)
+print(mesh)
+
+vedo.show(mesh,axes=1)
